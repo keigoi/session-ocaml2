@@ -1,0 +1,4 @@
+(library
+ (name session_ocaml)
+ (libraries domainslib threads)
+ )
