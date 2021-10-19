@@ -1,5 +1,17 @@
-(test
+(executable
  (name count)
  (modules count)
+ (libraries session_ocaml)
+ )
+
+(executable
+ (name count_monad)
+ (modules count_monad)
+ (libraries session_ocaml)
+ )
+
+(executable
+ (name xor)
+ (modules xor)
  (libraries session_ocaml)
  )
