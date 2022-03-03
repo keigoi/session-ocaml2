@@ -1,4 +1,4 @@
-open Session_ocaml.Monadic
+open Session_ocaml.MonadicStyle
 open Syntax
 
 let srv () =
@@ -31,5 +31,5 @@ let cli () =
 
 let () =
   run_monad (fun () ->
-      let* () = start_server srv in
+      let* () = fork srv in
       cli ())

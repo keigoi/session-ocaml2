@@ -35,11 +35,18 @@ let offer (ch, _) =
 
 let close _ = ()
 
-let new_session () =
-  let ch = Chan.make_unbounded () in
-  ((ch, (Req, Resp)), (ch, (Resp, Req)))
+module Channel = struct
+  let new_session () =
+    let ch = Chan.make_unbounded () in
+    ((ch, (Req, Resp)), (ch, (Resp, Req)))
+end
 
-module Callback = struct
+let fork f =
+  let cli, srv = Channel.new_session () in
+  let (_ : Thread.t) = Thread.create f srv in
+  cli
+
+module CallbackStyle = struct
   type 'p data =
     | Msg : ('v * 'p data Domainslib.Chan.t) -> [ `msg of 'r * 'v * 'p ] data
     | Branch :
@@ -69,12 +76,19 @@ module Callback = struct
 
   let close _ = ()
 
-  let new_session () =
-    let ch = Chan.make_unbounded () in
-    ((ch, (Req, Resp)), (ch, (Resp, Req)))
+  module Channel = struct
+    let new_session () =
+      let ch = Chan.make_unbounded () in
+      ((ch, (Req, Resp)), (ch, (Resp, Req)))
+  end
+
+  let fork f =
+    let cli, srv = Channel.new_session () in
+    let (_ : Thread.t) = Thread.create f srv in
+    cli
 end
 
-module Monadic = struct
+module MonadicStyle = struct
   type ('p, 'q, 'a) monad = 'p -> 'q * 'a
 
   let bind m f p =
@@ -115,8 +129,8 @@ module Monadic = struct
 
   let close _ = ((), ())
 
-  let start_server f () =
-    let cli, srv = Callback.new_session () in
+  let fork f () =
+    let cli, srv = CallbackStyle.Channel.new_session () in
     ignore (Thread.create (fun srv -> snd (f () srv)) srv);
     (cli, ())
 

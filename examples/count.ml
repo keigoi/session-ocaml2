@@ -21,6 +21,5 @@ let client ch =
   loop ch
 
 let () =
-  let cch, sch = new_session () in
-  let _t = Thread.create server sch in
+  let cch = fork server in
   client cch

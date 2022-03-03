@@ -18,9 +18,13 @@ val select :
 
 val offer : ([ `branch of 'r2 * 'var ], 'r1 * 'r2) sess -> 'var
 val close : (unit, 'r1 * 'r2) sess -> unit
-val new_session : unit -> ('p, cli) sess * ('p, srv) sess
+val fork : (('p, srv) sess -> unit) -> ('p, cli) sess
 
-module Callback : sig
+module Channel : sig
+  val new_session : unit -> ('p, cli) sess * ('p, srv) sess
+end
+
+module CallbackStyle : sig
   type ('p, 'q) sess
 
   val send :
@@ -36,10 +40,14 @@ module Callback : sig
 
   val offer : ([ `branch of 'r2 * 'obj ], 'r1 * 'r2) sess -> 'obj -> unit
   val close : (unit, 'r1 * 'r2) sess -> unit
-  val new_session : unit -> ('p, cli) sess * ('p, srv) sess
+  val fork : (('p, srv) sess -> unit) -> ('p, cli) sess
+
+  module Channel : sig
+    val new_session : unit -> ('p, cli) sess * ('p, srv) sess
+  end
 end
 
-module Monadic : sig
+module MonadicStyle : sig
   type ('p, 'q, 'a) monad
 
   val bind :
@@ -75,7 +83,7 @@ module Monadic : sig
 
   val close : ((unit, 'r1 * 'r2) sess, unit, unit) monad
 
-  val start_server :
+  val fork :
     (unit -> (('p, srv) sess, unit, unit) monad) ->
     (unit, ('p, cli) sess, unit) monad
 

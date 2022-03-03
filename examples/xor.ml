@@ -1,9 +1,9 @@
-open! Session_ocaml.Monadic
+open! Session_ocaml.MonadicStyle
 open! Syntax
 
 let main () =
   let* () =
-    start_server (fun () ->
+    fork (fun () ->
         let* x, y = receive in
         let* () = send (x <> y) in
         close)
