@@ -1,4 +1,4 @@
-open Session_ocaml
+open Session_ocaml.Callback
 
 let () =
   let cch, sch = new_session () in

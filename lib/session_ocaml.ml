@@ -1,43 +1,45 @@
 open Domainslib
 
-type 'p data =
-  | Msg : ('v * 'p data Domainslib.Chan.t) -> [ `msg of 'r * 'v * 'p ] data
-  | Branch :
-      ('br -> 'p data Domainslib.Chan.t -> unit) * 'p data Domainslib.Chan.t
-      -> [ `branch of 'r * 'br ] data
-
-(* | Chan : (('pp, 'rr) sess * 'p data Domainslib.Chan.t) -> [`deleg of 'r * ('pp, 'rr) sess * 'p] data *)
-and ('p, 'q) sess = 'p data Domainslib.Chan.t * 'q
-
 type req = Req
 and resp = Resp
 
 type cli = req * resp
 type srv = resp * req
 
-let send v (ch, q) =
-  let ch' = Chan.make_unbounded () in
-  Chan.send ch (Msg (v, ch'));
-  (ch', q)
+module Callback = struct
+  type 'p data =
+    | Msg : ('v * 'p data Domainslib.Chan.t) -> [ `msg of 'r * 'v * 'p ] data
+    | Branch :
+        ('br -> 'p data Domainslib.Chan.t -> unit) * 'p data Domainslib.Chan.t
+        -> [ `branch of 'r * 'br ] data
 
-let receive (ch, q) =
-  let (Msg (v, ch')) = Chan.recv ch in
-  ((ch', q), v)
+  (* | Chan : (('pp, 'rr) sess * 'p data Domainslib.Chan.t) -> [`deleg of 'r * ('pp, 'rr) sess * 'p] data *)
+  and ('p, 'q) sess = 'p data Domainslib.Chan.t * 'q
 
-let select f (ch, (r1, r2)) =
-  let ch' = Chan.make_unbounded () in
-  Chan.send ch (Branch ((fun obj p -> f obj (p, (r2, r1))), ch'));
-  (ch', (r1, r2))
+  let send v (ch, q) =
+    let ch' = Chan.make_unbounded () in
+    Chan.send ch (Msg (v, ch'));
+    (ch', q)
 
-let offer (ch, _) obj : unit =
-  let (Branch (f, ch')) = Chan.recv ch in
-  f obj ch'
+  let receive (ch, q) =
+    let (Msg (v, ch')) = Chan.recv ch in
+    ((ch', q), v)
 
-let close _ = ()
+  let select f (ch, (r1, r2)) =
+    let ch' = Chan.make_unbounded () in
+    Chan.send ch (Branch ((fun obj p -> f obj (p, (r2, r1))), ch'));
+    (ch', (r1, r2))
 
-let new_session () =
-  let ch = Chan.make_unbounded () in
-  ((ch, (Req, Resp)), (ch, (Resp, Req)))
+  let offer (ch, _) obj : unit =
+    let (Branch (f, ch')) = Chan.recv ch in
+    f obj ch'
+
+  let close _ = ()
+
+  let new_session () =
+    let ch = Chan.make_unbounded () in
+    ((ch, (Req, Resp)), (ch, (Resp, Req)))
+end
 
 module Monadic = struct
   type ('p, 'q, 'a) monad = 'p -> 'q * 'a
@@ -81,7 +83,7 @@ module Monadic = struct
   let close _ = ((), ())
 
   let start_server f () =
-    let cli, srv = new_session () in
+    let cli, srv = Callback.new_session () in
     ignore (Thread.create (fun srv -> snd (f () srv)) srv);
     (cli, ())
 
