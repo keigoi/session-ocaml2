@@ -138,3 +138,71 @@ module MonadicStyle = struct
     let ( let* ) = bind
   end
 end
+
+module NonPolar = struct
+  type 'p data =
+    | Send : ('v * 'p data Domainslib.Chan.t) -> [ `send of 'v * 'p ] data
+    | Select :
+        ('p data Domainslib.Chan.t -> 'br) * 'p data Domainslib.Chan.t
+        -> [ `select of 'br ] data
+    | Recv : ('v * 'p data Domainslib.Chan.t) -> [ `recv of 'v * 'p ] data
+    | Branch :
+        ('p data Domainslib.Chan.t -> 'br) * 'p data Domainslib.Chan.t
+        -> [ `branch of 'br ] data
+
+  and 'p cli = 'p data Domainslib.Chan.t
+  and 'p srv = 'p data Domainslib.Chan.t
+
+  let send v ch =
+    let ch' = Chan.make_unbounded () in
+    Chan.send ch (Send (v, ch'));
+    ch'
+
+  let receive ch =
+    let (Recv (v, ch')) = Chan.recv ch in
+    (ch', v)
+
+  let select f ch =
+    let ch' = Chan.make_unbounded () in
+    Chan.send ch (Select ((fun p -> f p), ch'));
+    ch'
+
+  let offer ch =
+    let (Branch (f, ch')) = Chan.recv ch in
+    f ch'
+
+  let close _ = ()
+
+  module Channel = struct
+    let new_session () =
+      let ch = Chan.make_unbounded () in
+      ch, ch
+  end
+
+  let fork f =
+    let cli, srv = Channel.new_session () in
+    let (_ : Thread.t) = Thread.create f srv in
+    cli
+
+  module Server = struct
+    let send v ch =
+      let ch' = Chan.make_unbounded () in
+      Chan.send ch (Recv (v, ch'));
+      ch'
+
+    let receive ch =
+      let (Send (v, ch')) = Chan.recv ch in
+      (ch', v)
+
+    let select f ch =
+      let ch' = Chan.make_unbounded () in
+      Chan.send ch (Branch ((fun p -> f p), ch'));
+      ch'
+
+    let offer ch =
+      let (Select (f, ch')) = Chan.recv ch in
+      f ch'
+
+    let close _ = ()
+  end
+end

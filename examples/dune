@@ -4,6 +4,11 @@
  (libraries session_ocaml))
 
 (executable
+ (name count_nonpolar)
+ (modules count_nonpolar)
+ (libraries session_ocaml))
+
+(executable
  (name count_callback)
  (modules count_callback)
  (libraries session_ocaml))

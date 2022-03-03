@@ -92,3 +92,23 @@ module MonadicStyle : sig
       ('p, 'q, 'a) monad -> ('a -> ('q, 'r, 'b) monad) -> ('p, 'r, 'b) monad
   end
 end
+
+module NonPolar : sig
+  type 'p cli
+  type 'p srv
+
+  val send : 'v -> [ `send of 'v * 'p ] cli -> 'p cli
+  val receive : [ `recv of 'v * 'p ] cli -> 'p cli * 'v
+  val select : ('p srv -> 'var) -> [ `select of 'var ] cli -> 'p cli
+  val offer : [ `branch of 'var ] cli -> 'var
+  val close : unit cli -> unit
+  val fork : ('p srv -> unit) -> 'p cli
+
+  module Server : sig
+    val send : 'v -> [ `recv of 'v * 'p ] srv -> 'p srv
+    val receive : [ `send of 'v * 'p ] srv -> 'p srv * 'v
+    val select : ('p cli -> 'var) -> [ `branch of 'var ] srv -> 'p srv
+    val offer : [ `select of 'var ] srv -> 'var
+    val close : unit srv -> unit
+  end
+end
