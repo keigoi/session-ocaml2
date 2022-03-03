@@ -1,5 +1,6 @@
 open Session_ocaml.Monadic
 open Syntax
+
 let srv () =
   let* cnt = receive in
   let rec loop i =
@@ -9,25 +10,26 @@ let srv () =
     else
       let* () = select (fun o -> o#left) in
       let* () = send i in
-      loop (i-1)
-  in loop cnt
+      loop (i - 1)
+  in
+  loop cnt
 
 let cli () =
   let* () = send 10 in
   let rec loop () =
     offer
-      (object 
-        method left =
-          let* v = receive in
-          Printf.printf "%d\n" v;
-          loop ()
-        method right =
-          close
+      (object
+         method left =
+           let* v = receive in
+           Printf.printf "%d\n" v;
+           loop ()
+
+         method right = close
       end)
-    in loop ()
+  in
+  loop ()
 
 let () =
-  run_monad (fun () -> 
-    let* () = start_server srv in
-    cli ())
-
+  run_monad (fun () ->
+      let* () = start_server srv in
+      cli ())
