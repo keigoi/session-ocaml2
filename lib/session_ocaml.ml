@@ -8,9 +8,7 @@ type srv = resp * req
 
 type 'p data =
   | Msg : ('v * 'p data Domainslib.Chan.t) -> [ `msg of 'r * 'v * 'p ] data
-  | Branch :
-      ('p data Domainslib.Chan.t -> 'br) * 'p data Domainslib.Chan.t
-      -> [ `branch of 'r * 'br ] data
+  | Branch : 'br -> [ `branch of 'r * 'br ] data
 
 (* | Chan : (('pp, 'rr) sess * 'p data Domainslib.Chan.t) -> [`deleg of 'r * ('pp, 'rr) sess * 'p] data *)
 and ('p, 'q) sess = 'p data Domainslib.Chan.t * 'q
@@ -26,12 +24,12 @@ let receive (ch, q) =
 
 let select f (ch, (r1, r2)) =
   let ch' = Chan.make_unbounded () in
-  Chan.send ch (Branch ((fun p -> f (p, (r2, r1))), ch'));
+  Chan.send ch (Branch (f (ch', (r2, r1))));
   (ch', (r1, r2))
 
 let offer (ch, _) =
-  let (Branch (f, ch')) = Chan.recv ch in
-  f ch'
+  let (Branch var) = Chan.recv ch in
+  var
 
 let close _ = ()
 
@@ -142,13 +140,9 @@ end
 module NonPolar = struct
   type 'p data =
     | Send : ('v * 'p data Domainslib.Chan.t) -> [ `send of 'v * 'p ] data
-    | Select :
-        ('p data Domainslib.Chan.t -> 'br) * 'p data Domainslib.Chan.t
-        -> [ `select of 'br ] data
+    | Select : 'br -> [ `select of 'br ] data
     | Recv : ('v * 'p data Domainslib.Chan.t) -> [ `recv of 'v * 'p ] data
-    | Branch :
-        ('p data Domainslib.Chan.t -> 'br) * 'p data Domainslib.Chan.t
-        -> [ `branch of 'br ] data
+    | Branch : 'br -> [ `branch of 'br ] data
 
   and 'p cli = 'p data Domainslib.Chan.t
   and 'p srv = 'p data Domainslib.Chan.t
@@ -164,19 +158,19 @@ module NonPolar = struct
 
   let select f ch =
     let ch' = Chan.make_unbounded () in
-    Chan.send ch (Select ((fun p -> f p), ch'));
+    Chan.send ch (Select (f ch'));
     ch'
 
   let offer ch =
-    let (Branch (f, ch')) = Chan.recv ch in
-    f ch'
+    let (Branch var) = Chan.recv ch in
+    var
 
   let close _ = ()
 
   module Channel = struct
     let new_session () =
       let ch = Chan.make_unbounded () in
-      ch, ch
+      (ch, ch)
   end
 
   let fork f =
@@ -196,12 +190,12 @@ module NonPolar = struct
 
     let select f ch =
       let ch' = Chan.make_unbounded () in
-      Chan.send ch (Branch ((fun p -> f p), ch'));
+      Chan.send ch (Branch (f ch'));
       ch'
 
     let offer ch =
-      let (Select (f, ch')) = Chan.recv ch in
-      f ch'
+      let (Select var) = Chan.recv ch in
+      var
 
     let close _ = ()
   end
