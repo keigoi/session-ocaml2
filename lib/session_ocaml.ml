@@ -10,7 +10,6 @@ type 'p data =
   | Msg : ('v * 'p data Domainslib.Chan.t) -> [ `msg of 'r * 'v * 'p ] data
   | Branch : 'br -> [ `branch of 'r * 'br ] data
 
-(* | Chan : (('pp, 'rr) sess * 'p data Domainslib.Chan.t) -> [`deleg of 'r * ('pp, 'rr) sess * 'p] data *)
 and ('p, 'q) sess = 'p data Domainslib.Chan.t * 'q
 
 let send v (ch, q) =
@@ -152,6 +151,8 @@ module NonPolar = struct
     Chan.send ch (Send (v, ch'));
     ch'
 
+  let send_and_forward v ch ch' = Chan.send ch (Send (v, ch'))
+
   let receive ch =
     let (Recv (v, ch')) = Chan.recv ch in
     (ch', v)
@@ -160,6 +161,8 @@ module NonPolar = struct
     let ch' = Chan.make_unbounded () in
     Chan.send ch (Select (f ch'));
     ch'
+
+  let select_and_forward f ch ch' = Chan.send ch (Select (f ch'))
 
   let offer ch =
     let (Branch var) = Chan.recv ch in
@@ -184,6 +187,8 @@ module NonPolar = struct
       Chan.send ch (Recv (v, ch'));
       ch'
 
+    let send_and_forward v ch ch' = Chan.send ch (Recv (v, ch'))
+
     let receive ch =
       let (Send (v, ch')) = Chan.recv ch in
       (ch', v)
@@ -192,6 +197,8 @@ module NonPolar = struct
       let ch' = Chan.make_unbounded () in
       Chan.send ch (Branch (f ch'));
       ch'
+
+    let select_and_forward f ch ch' = Chan.send ch (Branch (f ch'))
 
     let offer ch =
       let (Select var) = Chan.recv ch in

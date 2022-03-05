@@ -98,16 +98,26 @@ module NonPolar : sig
   type 'p srv
 
   val send : 'v -> [ `send of 'v * 'p ] cli -> 'p cli
+  val send_and_forward : 'v -> [ `send of 'v * 'p ] cli -> 'p srv -> unit
   val receive : [ `recv of 'v * 'p ] cli -> 'p cli * 'v
   val select : ('p srv -> 'var) -> [ `select of 'var ] cli -> 'p cli
+
+  val select_and_forward :
+    ('p srv -> 'var) -> [ `select of 'var ] cli -> 'p srv -> unit
+
   val offer : [ `branch of 'var ] cli -> 'var
   val close : unit cli -> unit
   val fork : ('p srv -> unit) -> 'p cli
 
   module Server : sig
     val send : 'v -> [ `recv of 'v * 'p ] srv -> 'p srv
+    val send_and_forward : 'v -> [ `recv of 'v * 'p ] srv -> 'p cli -> unit
     val receive : [ `send of 'v * 'p ] srv -> 'p srv * 'v
     val select : ('p cli -> 'var) -> [ `branch of 'var ] srv -> 'p srv
+
+    val select_and_forward :
+      ('p cli -> 'var) -> [ `branch of 'var ] srv -> 'p cli -> unit
+
     val offer : [ `select of 'var ] srv -> 'var
     val close : unit srv -> unit
   end

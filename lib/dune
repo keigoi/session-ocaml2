@@ -1,4 +1,4 @@
 (library
+ (public_name session_ocaml)
  (name session_ocaml)
- (libraries domainslib threads)
- )
+ (libraries domainslib threads))
