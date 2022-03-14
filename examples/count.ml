@@ -1,7 +1,7 @@
 open Session_ocaml
 
 let server ch =
-  let ch, cnt = receive ch in
+  let cnt, ch = receive ch in
   let rec loop ch i =
     if i = 0 then close (select (fun o -> `right o) ch)
     else loop (send i (select (fun o -> `left o) ch)) (i - 1)
@@ -13,7 +13,7 @@ let client ch =
   let rec loop ch =
     match offer ch with
     | `left ch ->
-        let ch, v = receive ch in
+        let v, ch = receive ch in
         Printf.printf "%d\n" v;
         loop ch
     | `right ch -> close ch

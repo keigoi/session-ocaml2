@@ -19,7 +19,7 @@ let send v (ch, q) =
 
 let receive (ch, q) =
   let (Msg (v, ch')) = Chan.recv ch in
-  ((ch', q), v)
+  (v, (ch', q))
 
 let select f (ch, (r1, r2)) =
   let ch' = Chan.make_unbounded () in
@@ -60,7 +60,7 @@ module CallbackStyle = struct
 
   let receive (ch, q) =
     let (Msg (v, ch')) = Chan.recv ch in
-    ((ch', q), v)
+    (v, (ch', q))
 
   let select f (ch, (r1, r2)) =
     let ch' = Chan.make_unbounded () in
@@ -151,18 +151,18 @@ module NonPolar = struct
     Chan.send ch (Send (v, ch'));
     ch'
 
-  let send_and_forward v ch ch' = Chan.send ch (Send (v, ch'))
+  let send_and_forward v ch' ch = Chan.send ch (Send (v, ch'))
 
   let receive ch =
     let (Recv (v, ch')) = Chan.recv ch in
-    (ch', v)
+    (v, ch')
 
   let select f ch =
     let ch' = Chan.make_unbounded () in
     Chan.send ch (Select (f ch'));
     ch'
 
-  let select_and_forward f ch ch' = Chan.send ch (Select (f ch'))
+  let select_and_forward f ch' ch = Chan.send ch (Select (f ch'))
 
   let offer ch =
     let (Branch var) = Chan.recv ch in
@@ -187,18 +187,18 @@ module NonPolar = struct
       Chan.send ch (Recv (v, ch'));
       ch'
 
-    let send_and_forward v ch ch' = Chan.send ch (Recv (v, ch'))
+    let send_and_forward v ch' ch = Chan.send ch (Recv (v, ch'))
 
     let receive ch =
       let (Send (v, ch')) = Chan.recv ch in
-      (ch', v)
+      (v, ch')
 
     let select f ch =
       let ch' = Chan.make_unbounded () in
       Chan.send ch (Branch (f ch'));
       ch'
 
-    let select_and_forward f ch ch' = Chan.send ch (Branch (f ch'))
+    let select_and_forward f ch' ch = Chan.send ch (Branch (f ch'))
 
     let offer ch =
       let (Select var) = Chan.recv ch in
